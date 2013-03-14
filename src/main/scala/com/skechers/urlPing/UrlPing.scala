@@ -16,9 +16,15 @@ object UrlPing {
 
   case class Config(url: String, timeout: Int, pause: Int, verbose: Boolean)
 
+  def time(f: => Any): Long = {
+    val b4 = System.currentTimeMillis()
+    f
+    val after = System.currentTimeMillis()
+    after - b4
+  }
+
 
   def main(args: Array[String]) {
-//    Runtime.getRuntime.exec("ab http://mira:5984/skechersdirect/_design/catalog/_view/AllStyles")
 
     var conf = Config( "localhost", 100, 1000, verbose = false)
 
@@ -36,8 +42,6 @@ object UrlPing {
     if (!conf.verbose) org.apache.log4j.Logger.getRootLogger.removeAppender("stdout")
 
     val url = conf.url
-//      "http://mira:5984/skechersdirect/_design/order/_view/FailedTransactions"
-    //"http://mira:5984/skechersdirect/_design/catalog/_view/AllStyles"
 
     val client = new HttpClient
     var i = 0
@@ -46,15 +50,13 @@ object UrlPing {
       try{
         i += 1
         get = new GetMethod(url)
-        val b4 = System.currentTimeMillis()
-        client.executeMethod(get)
+        val duration = time { client.executeMethod(get) }
         val status: String = get.getStatusText
         if (status!= "OK") throw new IllegalStateException("Got non 200 response!")
         get.releaseConnection()
-        val after = System.currentTimeMillis()
-        val time = after - b4
-        log.info(s"URL: ${conf.url} Status: $status Time: $time")
-        if (time > conf.timeout) log.warn(s"URL: ${conf.url} TIME > ${conf.timeout} : $time")
+
+        log.info(s"URL: ${conf.url} Status: $status Time: $duration")
+        if (duration > conf.timeout) log.warn(s"URL: ${conf.url} TIME > ${conf.timeout} : $duration")
       } catch {
         case t:Throwable => log.error("Error: ", t)
       } finally {
