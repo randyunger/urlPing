@@ -4,6 +4,8 @@ import org.apache.commons.httpclient.methods.GetMethod
 import org.apache.commons.httpclient.{HttpMethod, HttpClient}
 import org.slf4j.{Logger, LoggerFactory}
 import scopt.mutable.OptionParser
+import scala.concurrent._
+import ExecutionContext.Implicits.global
 
 /**
  * Created with IntelliJ IDEA.
@@ -14,7 +16,7 @@ import scopt.mutable.OptionParser
 
 object UrlPing {
 
-  case class Config(url: String, timeout: Int, pause: Int, verbose: Boolean)
+  case class Config(url: String, timeout: Int, pause: Int, bell: Int, verbose: Boolean)
 
   def time(f: => Any): Long = {
     val b4 = System.currentTimeMillis()
@@ -23,15 +25,19 @@ object UrlPing {
     after - b4
   }
 
+  def beep = future {
+    (1 to 3) foreach { i => java.awt.Toolkit.getDefaultToolkit.beep(); Thread.sleep(100) }
+  }
 
   def main(args: Array[String]) {
 
-    var conf = Config( "localhost", 100, 1000, verbose = false)
+    var conf = Config("localhost", 100, 1000, 0, verbose = false)
 
     val parser = new OptionParser {
       intOpt("t", "timelimit", "timelimit determines the max request time in milliseconds before logging a warning. Default is 100", {v: Int => conf = conf.copy(timeout = v)})
       intOpt("p", "pause", "pause is the time in milliseconds to wait between requests. Default is 1000.", {v: Int => conf = conf.copy(pause = v)})
       booleanOpt("v", "verbose", "if verbose is enabled, will log to stdout as well as urlPing.log", {v: Boolean => conf = conf.copy(verbose = v)})
+      intOpt("b", "bell", "if the response takes longer than 'bell', play a bell sound", {v: Int => conf = conf.copy(bell = v)})
       arg("<url>", "<url> is the url to ping", {v: String => conf = conf.copy(url = v)})
     }
 
@@ -57,6 +63,7 @@ object UrlPing {
 
         log.info(s"URL: ${conf.url} Status: $status Time: $duration")
         if (duration > conf.timeout) log.warn(s"URL: ${conf.url} TIME > ${conf.timeout} : $duration")
+        if (0 < conf.bell && conf.bell < duration) beep
       } catch {
         case t:Throwable => log.error("Error: ", t)
       } finally {
