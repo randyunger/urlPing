@@ -15,8 +15,8 @@ import ExecutionContext.Implicits.global
  */
 
 object UrlPing {
-
-  case class Config(url: String, timeout: Int, pause: Int, bell: Int, verbose: Boolean)
+                                                                      //command does nothing yet
+  case class Config(url: String, timeout: Int, pause: Int, bell: Int, command:String, verbose: Boolean)
 
   def time(f: => Any): Long = {
     val b4 = System.currentTimeMillis()
@@ -31,7 +31,7 @@ object UrlPing {
 
   def main(args: Array[String]) {
 
-    var conf = Config("localhost", 100, 1000, 0, verbose = false)
+    var conf = Config("localhost", 100, 1000, 0, "", verbose = false)
 
     val parser = new OptionParser {
       intOpt("t", "timelimit", "timelimit determines the max request time in milliseconds before logging a warning. Default is 100", {v: Int => conf = conf.copy(timeout = v)})
@@ -65,7 +65,10 @@ object UrlPing {
         if (duration > conf.timeout) log.warn(s"URL: ${conf.url} TIME > ${conf.timeout} : $duration")
         if (0 < conf.bell && conf.bell < duration) beep
       } catch {
-        case t:Throwable => log.error("Error: ", t)
+        case t:Throwable => {
+          beep
+          log.error("Error: ", t)
+        }
       } finally {
         get.releaseConnection()
       }
