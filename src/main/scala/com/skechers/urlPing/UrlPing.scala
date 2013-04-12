@@ -26,7 +26,7 @@ object UrlPing {
   }
 
   def beep = future {
-    (1 to 3) foreach { i => java.awt.Toolkit.getDefaultToolkit.beep(); Thread.sleep(100) }
+    (1 to 3) foreach { i => java.awt.Toolkit.getDefaultToolkit.beep(); Thread.sleep(100)  }
   }
 
   def main(args: Array[String]) {
